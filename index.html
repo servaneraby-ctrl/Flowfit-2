@@ -1,1 +1,742 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<meta name="theme-color" content="#0f0a0f"/>
+<title>FlowFit 🌸</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:#0f0a0f;font-family:'DM Sans',sans-serif;color:#fdf2f8;overscroll-behavior:none;}
+::-webkit-scrollbar{width:0;}
+input,button,select{font-family:'DM Sans',sans-serif;}
+select{appearance:none;-webkit-appearance:none;}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.fade{animation:fadeIn 0.3s ease forwards;}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useEffect, useRef } = React;
 
+const C = {
+  bg:"#0f0a0f", card:"#1a101a", border:"#2d1a2d",
+  rose:"#f472b6", roseDim:"#f472b620", roseMid:"#f472b650",
+  coral:"#fb923c", gold:"#fbbf24", green:"#34d399",
+  text:"#fdf2f8", muted:"#9d7a9d", dim:"#4a2d4a",
+};
+
+const store = {
+  get(k){try{const v=localStorage.getItem(k);return v?JSON.parse(v):null;}catch{return null;}},
+  set(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch{}},
+};
+function useLocal(key,fallback){
+  const [val,setVal]=useState(()=>store.get(key)??fallback);
+  const save=(v)=>{setVal(v);store.set(key,v);};
+  return [val,save];
+}
+
+// ── IMAGES UNSPLASH (libres de droits) ────────────────────────────────────
+const IMGS = {
+  hero: "https://images.unsplash.com/photo-1518611012118-696072aa579a?w=800&q=80",
+  squat: "https://images.unsplash.com/photo-1574680096145-d05b474e2155?w=400&q=70",
+  bench: "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400&q=70",
+  yoga: "https://images.unsplash.com/photo-1506126613408-eca07ce68773?w=400&q=70",
+  walk: "https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=400&q=70",
+  wellness: "https://images.unsplash.com/photo-1552693673-1bf958298935?w=400&q=70",
+  supplements: "https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=400&q=70",
+};
+
+// ── DATA ───────────────────────────────────────────────────────────────────
+const SUPPLEMENTS = [
+  {id:"d3k2",label:"D3 + K2",time:"matin",icon:"☀️"},
+  {id:"collagene",label:"Collagène",time:"matin",icon:"✨"},
+  {id:"omega3m",label:"Oméga-3",time:"midi",icon:"🐟"},
+  {id:"omega3s",label:"Oméga-3",time:"soir",icon:"🐟"},
+  {id:"prework",label:"Pré-workout",time:"20h45",icon:"⚡"},
+  {id:"creatine",label:"Créatine",time:"muscu",icon:"💪"},
+];
+const MEALS = [
+  {id:"ptitdej",label:"Petit-déj + Whey",time:"8h",icon:"🌅"},
+  {id:"midi",label:"Poulet + Riz + Légumes",time:"midi",icon:"🍽️"},
+  {id:"soir",label:"Repas léger Poulet/Œufs",time:"17h",icon:"🌙"},
+  {id:"wheypost",label:"Whey post-muscu",time:"22h30",icon:"🥤"},
+];
+const SYMPTOMS = [
+  {id:"bouffees",label:"Sans bouffées de chaleur",icon:"🌡️"},
+  {id:"humeur",label:"Humeur stable",icon:"😊"},
+  {id:"energie",label:"Bonne énergie",icon:"⚡"},
+  {id:"sommeil",label:"Bon sommeil",icon:"😴"},
+  {id:"douleurs",label:"Sans douleurs",icon:"💆"},
+  {id:"concentration",label:"Bonne concentration",icon:"🎯"},
+];
+const NOTIFS = [
+  {id:"matin",h:8,m:0,title:"FlowFit ☀️",body:"N'oublie pas ton D3+K2 et Collagène !"},
+  {id:"hydra",h:12,m:0,title:"FlowFit 💧",body:"As-tu bu tes 4 premiers verres ?"},
+  {id:"omega",h:13,m:0,title:"FlowFit 🐟",body:"Oméga-3 avec ton repas de midi !"},
+  {id:"prework",h:20,m:15,title:"FlowFit ⚡",body:"Pré-workout dans 30 min !"},
+  {id:"muscu",h:21,m:0,title:"FlowFit 🏋️",body:"C'est l'heure de soulever ! 💪"},
+  {id:"whey",h:22,m:30,title:"FlowFit 🥤",body:"Whey post-muscu — récupération !"},
+  {id:"bilan",h:23,m:0,title:"FlowFit 🌸",body:"Bilan du jour — ouvre ton coach !"},
+];
+
+// ── EXERCICES PAR PARTIE DU CORPS ─────────────────────────────────────────
+const BODY_PARTS = [
+  {
+    id:"jambes", label:"🦵 Jambes & Fessiers", color:"#f472b6",
+    exercises:[
+      "Squat","Squat sumo","Leg Press","Presse à cuisses","Fentes avant",
+      "Fentes latérales","Hip Thrust","Pont fessier","Abducteurs","Adducteurs",
+      "Leg Curl","Leg Extension","Mollets debout","Mollets assis","Deadlift roumain",
+    ]
+  },
+  {
+    id:"dos", label:"🔙 Dos & Lombaires", color:"#fb923c",
+    exercises:[
+      "Soulevé de terre","Rowing barre","Rowing haltère","Tirage poulie haute",
+      "Tirage poulie basse","Traction","Pull-over","Shrug","Superman","Hyperextension",
+      "Rowing machine","Face Pull",
+    ]
+  },
+  {
+    id:"pec", label:"🫁 Poitrine & Épaules", color:"#fbbf24",
+    exercises:[
+      "Développé couché","Développé incliné","Développé décliné","Écarté haltères",
+      "Pompes","Dips","OHP haltères","OHP barre","Élévations latérales",
+      "Élévations frontales","Oiseau","Arnold Press",
+    ]
+  },
+  {
+    id:"bras", label:"💪 Bras", color:"#34d399",
+    exercises:[
+      "Curl biceps haltères","Curl biceps barre","Curl marteau","Curl concentré",
+      "Curl à la poulie","Triceps poulie haute","Triceps barre","Dips triceps",
+      "Extension triceps","Kickback triceps","Skullcrusher",
+    ]
+  },
+  {
+    id:"abdo", label:"🔥 Abdominaux & Core", color:"#a78bfa",
+    exercises:[
+      "Gainage","Gainage latéral","Crunch","Crunch obliques","Relevé de jambes",
+      "Russian Twist","Bicycle","Mountain Climber","Vacuum","Planche","Ab wheel",
+      "Soulevé de jambes suspendu",
+    ]
+  },
+  {
+    id:"cardio", label:"❤️ Cardio & Mobilité", color:"#60a5fa",
+    exercises:[
+      "Marche rapide","Course légère","Vélo","Rameur","Elliptique","HIIT",
+      "Burpees","Corde à sauter","Natation","Yoga","Pilates","Étirements",
+      "Foam roller","Mobilité articulaire",
+    ]
+  },
+];
+
+const todayKey=()=>new Date().toDateString();
+
+// ── MINI COMPONENTS ────────────────────────────────────────────────────────
+function Card({children,style={},accent}){
+  return <div style={{background:C.card,border:`1px solid ${accent?accent+"40":C.border}`,borderRadius:16,padding:16,marginBottom:14,boxShadow:accent?`0 0 20px ${accent}10`:"none",...style}}>{children}</div>;
+}
+function Title({icon,label,color=C.rose}){
+  return <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:14}}>
+    <span style={{fontSize:18}}>{icon}</span>
+    <span style={{color,fontSize:11,fontWeight:700,letterSpacing:2,textTransform:"uppercase",fontFamily:"'Playfair Display',serif"}}>{label}</span>
+  </div>;
+}
+function Check({label,time,icon,checked,onChange}){
+  return <div onClick={onChange} style={{display:"flex",alignItems:"center",gap:10,padding:"10px 12px",background:checked?C.roseDim:"#ffffff08",borderRadius:10,marginBottom:6,cursor:"pointer",border:`1px solid ${checked?C.roseMid:"#ffffff10"}`,transition:"all 0.2s"}}>
+    <div style={{width:22,height:22,borderRadius:6,border:`2px solid ${checked?C.rose:C.dim}`,background:checked?C.rose:"none",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,transition:"all 0.2s"}}>
+      {checked&&<span style={{color:"#fff",fontSize:13,fontWeight:900}}>✓</span>}
+    </div>
+    <span style={{fontSize:18}}>{icon}</span>
+    <span style={{flex:1,color:checked?C.muted:C.text,fontSize:14,textDecoration:checked?"line-through":"none"}}>{label}</span>
+    {time&&<span style={{color:C.dim,fontSize:11}}>{time}</span>}
+  </div>;
+}
+function Ring({pct,size=70,color=C.rose,label,sub}){
+  const r=(size-8)/2,circ=2*Math.PI*r,dash=(pct/100)*circ;
+  return <div style={{position:"relative",width:size,height:size,display:"flex",alignItems:"center",justifyContent:"center"}}>
+    <svg width={size} height={size} style={{position:"absolute",top:0,left:0,transform:"rotate(-90deg)"}}>
+      <circle cx={size/2} cy={size/2} r={r} fill="none" stroke={color+"20"} strokeWidth={6}/>
+      <circle cx={size/2} cy={size/2} r={r} fill="none" stroke={color} strokeWidth={6} strokeDasharray={`${dash} ${circ}`} strokeLinecap="round" style={{transition:"stroke-dasharray 0.6s"}}/>
+    </svg>
+    <div style={{textAlign:"center"}}>
+      <div style={{color,fontSize:15,fontWeight:900,fontFamily:"'Playfair Display',serif"}}>{label}</div>
+      {sub&&<div style={{color:C.muted,fontSize:9}}>{sub}</div>}
+    </div>
+  </div>;
+}
+function Inp(props){
+  return <input {...props} style={{background:"#ffffff08",border:`1px solid ${C.border}`,color:C.text,borderRadius:10,padding:"10px 14px",fontSize:14,outline:"none",width:"100%",boxSizing:"border-box",...props.style}}/>;
+}
+function Sel({value,onChange,children,style={}}){
+  return <div style={{position:"relative",...style}}>
+    <select value={value} onChange={onChange} style={{width:"100%",background:"#ffffff08",border:`1px solid ${C.border}`,color:C.text,borderRadius:10,padding:"10px 14px",fontSize:14,outline:"none",cursor:"pointer"}}>
+      {children}
+    </select>
+    <span style={{position:"absolute",right:12,top:"50%",transform:"translateY(-50%)",color:C.muted,pointerEvents:"none"}}>▾</span>
+  </div>;
+}
+
+// ── PAGE: ACCUEIL ──────────────────────────────────────────────────────────
+function PageAccueil({routine,workouts}){
+  const today=todayKey();
+  const r=routine[today]||{};
+  const todayW=workouts.filter(w=>new Date(w.date).toDateString()===today);
+  const allIds=[...MEALS,...SUPPLEMENTS,...SYMPTOMS].map(x=>x.id);
+  const checked=allIds.filter(id=>r[id]).length;
+  const routinePct=Math.round((checked/allIds.length)*100);
+  const waterPct=Math.round(((r.water||0)/8)*100);
+  const hasTraining=r.training||todayW.length>0;
+  const h=new Date().getHours();
+  const greeting=h<12?"Bonjour":h<18?"Bon après-midi":"Bonsoir";
+
+  return <div className="fade">
+    {/* Hero image */}
+    <div style={{position:"relative",borderRadius:20,overflow:"hidden",marginBottom:20,height:160}}>
+      <img src={IMGS.hero} alt="" style={{width:"100%",height:"100%",objectFit:"cover",filter:"brightness(0.5)"}}/>
+      <div style={{position:"absolute",bottom:0,left:0,right:0,padding:"20px 16px",background:"linear-gradient(transparent,#0f0a0f)"}}>
+        <div style={{color:C.muted,fontSize:12,marginBottom:2}}>
+          {new Date().toLocaleDateString("fr-FR",{weekday:"long",day:"numeric",month:"long"})}
+        </div>
+        <div style={{fontSize:22,fontWeight:900,fontFamily:"'Playfair Display',serif",lineHeight:1.2}}>
+          {greeting} 👑 <span style={{color:C.rose}}>on déchire tout !</span>
+        </div>
+      </div>
+    </div>
+
+    <Card accent={C.rose}>
+      <Title icon="🎯" label="Progression du jour"/>
+      <div style={{display:"flex",justifyContent:"space-around"}}>
+        <div style={{textAlign:"center"}}><Ring pct={routinePct} color={C.rose} label={`${routinePct}%`} sub="ROUTINE"/></div>
+        <div style={{textAlign:"center"}}><Ring pct={waterPct} color="#60a5fa" label={`${r.water||0}/8`} sub="EAU"/></div>
+        <div style={{textAlign:"center"}}><Ring pct={hasTraining?100:0} color={C.green} label={hasTraining?"✓":"—"} sub="MUSCU"/></div>
+        <div style={{textAlign:"center"}}><Ring pct={Math.min(((r.vacuum||0)/3)*100,100)} color={C.gold} label={`${r.vacuum||0}/3`} sub="VACUUM"/></div>
+      </div>
+    </Card>
+
+    {todayW.length>0&&<Card accent={C.coral}>
+      <Title icon="🏋️" label="Séances aujourd'hui" color={C.coral}/>
+      {todayW.map(w=><div key={w.id} style={{display:"flex",justifyContent:"space-between",padding:"6px 0",borderBottom:`1px solid ${C.border}`}}>
+        <span style={{color:C.text,fontWeight:700}}>{w.exercise}</span>
+        <span style={{color:C.coral}}>{w.sets.length} série{w.sets.length>1?"s":""}</span>
+      </div>)}
+    </Card>}
+
+    {/* Wellness image block */}
+    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:14}}>
+      <div style={{borderRadius:14,overflow:"hidden",position:"relative",height:120}}>
+        <img src={IMGS.yoga} alt="Yoga" style={{width:"100%",height:"100%",objectFit:"cover",filter:"brightness(0.6)"}}/>
+        <div style={{position:"absolute",bottom:8,left:10,color:"#fff",fontSize:13,fontWeight:700}}>Mobilité 🧘</div>
+      </div>
+      <div style={{borderRadius:14,overflow:"hidden",position:"relative",height:120}}>
+        <img src={IMGS.wellness} alt="Wellness" style={{width:"100%",height:"100%",objectFit:"cover",filter:"brightness(0.6)"}}/>
+        <div style={{position:"absolute",bottom:8,left:10,color:"#fff",fontSize:13,fontWeight:700}}>Bien-être 🌸</div>
+      </div>
+    </div>
+
+    <Card>
+      <Title icon="🌸" label="Bien-être du jour"/>
+      <div style={{display:"flex",flexWrap:"wrap",gap:8}}>
+        {SYMPTOMS.map(s=><div key={s.id} style={{padding:"6px 12px",borderRadius:20,background:r[s.id]?C.roseDim:"#ffffff08",border:`1px solid ${r[s.id]?C.roseMid:"#ffffff10"}`,color:r[s.id]?C.rose:C.dim,fontSize:12}}>{s.icon} {s.label}</div>)}
+      </div>
+    </Card>
+
+    <Card>
+      <Title icon="🔥" label="Cette semaine"/>
+      <div style={{display:"flex",gap:6}}>
+        {["L","M","M","J","V","S","D"].map((d,i)=>{
+          const now=new Date(),day=now.getDay();
+          const diff=i+1-(day===0?7:day);
+          const t=new Date(now);t.setDate(now.getDate()+diff);
+          const has=routine[t.toDateString()];
+          const isToday=t.toDateString()===today;
+          return <div key={i} style={{flex:1,textAlign:"center"}}>
+            <div style={{fontSize:10,color:isToday?C.rose:C.dim,marginBottom:4}}>{d}</div>
+            <div style={{height:28,borderRadius:6,background:isToday?C.rose:has?C.roseDim:"#ffffff08",border:`1px solid ${isToday?C.rose:has?C.roseMid:"#ffffff10"}`}}/>
+          </div>;
+        })}
+      </div>
+    </Card>
+  </div>;
+}
+
+// ── PAGE: ROUTINE ──────────────────────────────────────────────────────────
+function PageRoutine({routine,setRoutine}){
+  const today=todayKey();
+  const r=routine[today]||{};
+  const toggle=id=>setRoutine({...routine,[today]:{...r,[id]:!r[id]}});
+  const setWater=n=>setRoutine({...routine,[today]:{...r,water:n}});
+  const setVacuum=n=>setRoutine({...routine,[today]:{...r,vacuum:n}});
+  const water=r.water||0,vacuum=r.vacuum||0;
+
+  return <div className="fade">
+    {/* Supplements image */}
+    <div style={{borderRadius:16,overflow:"hidden",marginBottom:14,height:100,position:"relative"}}>
+      <img src={IMGS.supplements} alt="" style={{width:"100%",height:"100%",objectFit:"cover",filter:"brightness(0.5)"}}/>
+      <div style={{position:"absolute",inset:0,display:"flex",alignItems:"center",padding:"0 16px"}}>
+        <div style={{color:"#fff",fontFamily:"'Playfair Display',serif",fontSize:18,fontWeight:900}}>Ma routine quotidienne 💊</div>
+      </div>
+    </div>
+
+    <Card accent={C.coral}>
+      <Title icon="🍽️" label="Nutrition" color={C.coral}/>
+      {MEALS.map(m=><Check key={m.id} {...m} checked={!!r[m.id]} onChange={()=>toggle(m.id)}/>)}
+    </Card>
+
+    <Card accent="#60a5fa">
+      <Title icon="💧" label="Hydratation — 1.5L" color="#60a5fa"/>
+      <div style={{display:"flex",gap:8,flexWrap:"wrap",justifyContent:"center",padding:"8px 0"}}>
+        {Array.from({length:8},(_,i)=><div key={i} onClick={()=>setWater(i<water?i:i+1)} style={{width:42,height:42,borderRadius:"50%",cursor:"pointer",background:i<water?"#60a5fa":"#ffffff08",border:`2px solid ${i<water?"#60a5fa":"#ffffff15"}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,transition:"all 0.2s"}}>💧</div>)}
+      </div>
+      <div style={{textAlign:"center",color:"#60a5fa",fontSize:13}}>{water*200}ml / 1600ml</div>
+    </Card>
+
+    <Card accent={C.gold}>
+      <Title icon="💊" label="Suppléments" color={C.gold}/>
+      {SUPPLEMENTS.map(s=><Check key={s.id} {...s} checked={!!r[s.id]} onChange={()=>toggle(s.id)}/>)}
+    </Card>
+
+    <Card accent={C.rose}>
+      <Title icon="🏋️" label="Entraînement"/>
+      <Check id="training" label="Muscu salle / Core routine" time="21h15" icon="🏋️" checked={!!r.training} onChange={()=>toggle("training")}/>
+      <div style={{marginTop:10}}>
+        <div style={{color:C.muted,fontSize:12,marginBottom:8}}>Vacuum (x3 dans la journée)</div>
+        <div style={{display:"flex",gap:8}}>
+          {[1,2,3].map(n=><div key={n} onClick={()=>setVacuum(vacuum>=n?n-1:n)} style={{flex:1,padding:"10px 0",textAlign:"center",borderRadius:10,cursor:"pointer",background:vacuum>=n?C.roseDim:"#ffffff08",border:`1px solid ${vacuum>=n?C.roseMid:"#ffffff10"}`,color:vacuum>=n?C.rose:C.dim,fontSize:13,transition:"all 0.2s"}}>Vacuum {n}</div>)}
+        </div>
+      </div>
+    </Card>
+
+    <Card accent={C.green}>
+      <Title icon="🌸" label="Bien-être & Symptômes" color={C.green}/>
+      {SYMPTOMS.map(s=><Check key={s.id} {...s} checked={!!r[s.id]} onChange={()=>toggle(s.id)}/>)}
+    </Card>
+  </div>;
+}
+
+// ── PAGE: MUSCU ────────────────────────────────────────────────────────────
+function PageMuscu({workouts,setWorkouts}){
+  const [step,setStep]=useState(0);
+  const [bodyPart,setBodyPart]=useState("");
+  const [name,setName]=useState("");
+  const [sets,setSets]=useState([{reps:"",weight:""}]);
+  const [note,setNote]=useState("");
+  const [show,setShow]=useState(false);
+  const [filter,setFilter]=useState("");
+  const [multiCount,setMultiCount]=useState(3);
+  const [showMulti,setShowMulti]=useState(false);
+
+  const selectedPart=BODY_PARTS.find(p=>p.id===bodyPart);
+
+  const reset=()=>{setName("");setSets([{reps:"",weight:""}]);setNote("");setStep(0);setBodyPart("");setShow(false);setShowMulti(false);};
+
+  const submit=()=>{
+    const valid=sets.filter(s=>s.reps||s.weight);
+    if(!name.trim()||!valid.length)return;
+    setWorkouts([...workouts,{id:Date.now(),date:new Date().toISOString(),exercise:name.trim(),sets:valid,note}]);
+    reset();
+  };
+
+  // Dupliquer la dernière série N fois
+  const multiplyLastSet=()=>{
+    const last=sets[sets.length-1];
+    if(!last.reps&&!last.weight)return;
+    const newSets=[...sets,...Array(multiCount-1).fill({...last})];
+    setSets(newSets);
+    setShowMulti(false);
+  };
+
+  const today=todayKey();
+  const todayW=workouts.filter(w=>new Date(w.date).toDateString()===today);
+  const filtered=filter?workouts.filter(w=>w.exercise.toLowerCase().includes(filter.toLowerCase())):workouts;
+  const grouped=filtered.reduce((acc,s)=>{
+    const d=new Date(s.date).toLocaleDateString("fr-FR",{weekday:"short",day:"numeric",month:"short"});
+    if(!acc[d])acc[d]=[];acc[d].push(s);return acc;
+  },{});
+
+  return <div className="fade">
+    {/* Hero muscu */}
+    <div style={{borderRadius:16,overflow:"hidden",marginBottom:14,height:110,position:"relative"}}>
+      <img src={IMGS.squat} alt="" style={{width:"100%",height:"100%",objectFit:"cover",filter:"brightness(0.45)"}}/>
+      <div style={{position:"absolute",inset:0,display:"flex",alignItems:"center",padding:"0 16px"}}>
+        <div style={{color:"#fff",fontFamily:"'Playfair Display',serif",fontSize:20,fontWeight:900}}>Séances muscu 🏋️</div>
+      </div>
+    </div>
+
+    <Card accent={C.coral}>
+      <Title icon="⚡" label="Aujourd'hui" color={C.coral}/>
+      {todayW.length===0
+        ?<div style={{color:C.dim,fontSize:14}}>Aucune séance encore. On y va ! 💪</div>
+        :todayW.map(w=><div key={w.id} style={{display:"flex",justifyContent:"space-between",padding:"6px 0",borderBottom:`1px solid ${C.border}`}}>
+          <span style={{color:C.text,fontWeight:700}}>{w.exercise}</span>
+          <span style={{color:C.coral}}>{w.sets.length} série{w.sets.length>1?"s":""}</span>
+        </div>)}
+    </Card>
+
+    {!show
+      ?<button onClick={()=>setShow(true)} style={{width:"100%",padding:14,background:C.rose,color:"#fff",border:"none",borderRadius:12,cursor:"pointer",fontWeight:900,fontSize:15,letterSpacing:1,marginBottom:20,fontFamily:"'Playfair Display',serif"}}>+ AJOUTER UNE SÉANCE</button>
+      :<Card accent={C.rose}>
+        {step===0?<>
+          <Title icon="💪" label="Partie du corps"/>
+          {/* Grille parties du corps */}
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:14}}>
+            {BODY_PARTS.map(p=><div key={p.id} onClick={()=>setBodyPart(p.id)} style={{padding:"12px 10px",borderRadius:12,cursor:"pointer",background:bodyPart===p.id?p.color+"30":"#ffffff08",border:`1px solid ${bodyPart===p.id?p.color:"#ffffff10"}`,color:bodyPart===p.id?p.color:C.muted,fontSize:13,fontWeight:bodyPart===p.id?700:400,textAlign:"center",transition:"all 0.2s"}}>
+              {p.label}
+            </div>)}
+          </div>
+
+          {/* Exercices de la partie sélectionnée */}
+          {selectedPart&&<>
+            <Sel value={name} onChange={e=>setName(e.target.value)} style={{marginBottom:10}}>
+              <option value="">Choisir un exercice...</option>
+              {selectedPart.exercises.map(ex=><option key={ex} value={ex}>{ex}</option>)}
+            </Sel>
+            <Inp placeholder="Ou tape un exercice libre..." value={name} onChange={e=>setName(e.target.value)} style={{marginBottom:10}}/>
+          </>}
+
+          <div style={{display:"flex",gap:8,marginTop:4}}>
+            <button onClick={reset} style={{flex:1,padding:10,background:"none",color:C.muted,border:`1px solid ${C.border}`,borderRadius:8,cursor:"pointer"}}>Annuler</button>
+            <button onClick={()=>name.trim()&&setStep(1)} style={{flex:2,padding:10,background:name.trim()?C.rose:C.dim,color:"#fff",border:"none",borderRadius:8,cursor:"pointer",fontWeight:700}}>Suivant →</button>
+          </div>
+        </>:<>
+          <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:14}}>
+            <button onClick={()=>setStep(0)} style={{background:"none",border:"none",color:C.muted,cursor:"pointer",fontSize:18}}>←</button>
+            <span style={{color:C.rose,fontWeight:900,fontSize:16,fontFamily:"'Playfair Display',serif"}}>{name}</span>
+          </div>
+
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 32px",gap:6,marginBottom:6}}>
+            <div style={{color:C.dim,fontSize:11,textAlign:"center"}}>REPS</div>
+            <div style={{color:C.dim,fontSize:11,textAlign:"center"}}>POIDS (kg)</div>
+            <div/>
+          </div>
+
+          {sets.map((s,i)=><div key={i} style={{display:"grid",gridTemplateColumns:"1fr 1fr 32px",gap:6,marginBottom:6}}>
+            <Inp type="number" placeholder="12" value={s.reps} onChange={e=>setSets(sets.map((x,j)=>j===i?{...x,reps:e.target.value}:x))} style={{textAlign:"center"}}/>
+            <Inp type="number" placeholder="40" value={s.weight} onChange={e=>setSets(sets.map((x,j)=>j===i?{...x,weight:e.target.value}:x))} style={{textAlign:"center"}}/>
+            <button onClick={()=>setSets(sets.filter((_,j)=>j!==i))} style={{background:C.card,border:`1px solid ${C.border}`,color:C.muted,borderRadius:8,cursor:"pointer"}}>×</button>
+          </div>)}
+
+          {/* Boutons séries */}
+          <div style={{display:"flex",gap:6,marginBottom:10}}>
+            <button onClick={()=>setSets([...sets,{reps:sets[sets.length-1]?.reps||"",weight:sets[sets.length-1]?.weight||""}])} style={{flex:1,padding:8,background:"none",color:C.muted,border:`1px dashed ${C.border}`,borderRadius:8,cursor:"pointer",fontSize:12}}>+ Série</button>
+            <button onClick={()=>setShowMulti(!showMulti)} style={{flex:1,padding:8,background:showMulti?C.roseDim:"none",color:C.rose,border:`1px solid ${C.roseMid}`,borderRadius:8,cursor:"pointer",fontSize:12,fontWeight:700}}>✕ Multiplier</button>
+          </div>
+
+          {/* Multiplicateur de séries */}
+          {showMulti&&<div style={{background:"#ffffff08",borderRadius:12,padding:14,marginBottom:10,border:`1px solid ${C.roseMid}`}}>
+            <div style={{color:C.rose,fontSize:13,fontWeight:700,marginBottom:10}}>Répéter la dernière série :</div>
+            <div style={{display:"flex",alignItems:"center",gap:12,justifyContent:"center",marginBottom:12}}>
+              <button onClick={()=>setMultiCount(Math.max(2,multiCount-1))} style={{width:36,height:36,borderRadius:"50%",background:C.roseDim,border:`1px solid ${C.roseMid}`,color:C.rose,fontSize:20,cursor:"pointer"}}>−</button>
+              <span style={{color:C.rose,fontSize:28,fontWeight:900,fontFamily:"'Playfair Display',serif",minWidth:40,textAlign:"center"}}>×{multiCount}</span>
+              <button onClick={()=>setMultiCount(Math.min(10,multiCount+1))} style={{width:36,height:36,borderRadius:"50%",background:C.roseDim,border:`1px solid ${C.roseMid}`,color:C.rose,fontSize:20,cursor:"pointer"}}>+</button>
+            </div>
+            <button onClick={multiplyLastSet} style={{width:"100%",padding:10,background:C.rose,color:"#fff",border:"none",borderRadius:8,cursor:"pointer",fontWeight:700,fontSize:13}}>Ajouter {multiCount} séries identiques</button>
+          </div>}
+
+          <Inp placeholder="Note (optionnel)" value={note} onChange={e=>setNote(e.target.value)} style={{marginBottom:10}}/>
+          <button onClick={submit} style={{width:"100%",padding:12,background:C.rose,color:"#fff",border:"none",borderRadius:10,cursor:"pointer",fontWeight:900,fontSize:14,fontFamily:"'Playfair Display',serif"}}>ENREGISTRER 💪</button>
+        </>}
+      </Card>}
+
+    {workouts.length>0&&<>
+      <Inp placeholder="🔍 Filtrer par exercice..." value={filter} onChange={e=>setFilter(e.target.value)} style={{marginBottom:14}}/>
+      {Object.entries(grouped).reverse().map(([date,items])=><div key={date}>
+        <div style={{color:C.dim,fontSize:11,letterSpacing:2,textTransform:"uppercase",marginBottom:8,marginTop:4}}>{date}</div>
+        {items.map(w=><Card key={w.id}>
+          <div style={{display:"flex",justifyContent:"space-between",marginBottom:8}}>
+            <span style={{color:C.text,fontWeight:700}}>{w.exercise}</span>
+            <span style={{color:C.muted,fontSize:12}}>{new Date(w.date).toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"})}</span>
+          </div>
+          <div style={{display:"flex",flexWrap:"wrap",gap:6}}>
+            {w.sets.map((s,i)=><span key={i} style={{background:"#ffffff08",border:`1px solid ${C.border}`,borderRadius:8,padding:"3px 8px",fontSize:12,color:C.muted}}>
+              {s.reps&&`${s.reps} reps`}{s.reps&&s.weight&&" · "}{s.weight&&`${s.weight}kg`}
+            </span>)}
+          </div>
+          {w.note&&<div style={{color:C.dim,fontSize:12,marginTop:6,fontStyle:"italic"}}>"{w.note}"</div>}
+        </Card>)}
+      </div>)}
+    </>}
+  </div>;
+}
+
+// ── PAGE: STATS ────────────────────────────────────────────────────────────
+function PageStats({workouts,routine}){
+  const totalVol=workouts.reduce((a,w)=>a+w.sets.reduce((b,s)=>b+(parseFloat(s.reps)||0)*(parseFloat(s.weight)||0),0),0);
+  const uniqueExos=[...new Set(workouts.map(w=>w.exercise))];
+  const days30=Array.from({length:30},(_,i)=>{const d=new Date();d.setDate(d.getDate()-(29-i));return d.toDateString();});
+  const wDays=new Set(workouts.map(w=>new Date(w.date).toDateString()));
+  const rDays=new Set(Object.keys(routine));
+  const last7=Array.from({length:7},(_,i)=>{
+    const d=new Date();d.setDate(d.getDate()-(6-i));
+    const score=SYMPTOMS.filter(s=>(routine[d.toDateString()]||{})[s.id]).length;
+    return {label:d.toLocaleDateString("fr-FR",{weekday:"short"}),score};
+  });
+  const exoStats=uniqueExos.map(ex=>{
+    const s=workouts.filter(w=>w.exercise===ex);
+    const all=s.flatMap(w=>w.sets);
+    return {ex,count:s.length,maxW:Math.max(0,...all.map(s=>parseFloat(s.weight)||0)),maxR:Math.max(0,...all.map(s=>parseFloat(s.reps)||0))};
+  }).sort((a,b)=>b.count-a.count).slice(0,6);
+
+  if(!workouts.length&&!Object.keys(routine).length)
+    return <div style={{textAlign:"center",color:C.dim,fontSize:14,padding:"60px 0"}}>Enregistre des séances pour voir tes stats 📊</div>;
+
+  return <div className="fade">
+    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:14}}>
+      {[
+        {label:"Séances",value:workouts.length,color:C.rose},
+        {label:"Exercices",value:uniqueExos.length,color:C.coral},
+        {label:"Volume",value:totalVol>=1000?`${(totalVol/1000).toFixed(1)}t`:`${Math.round(totalVol)}kg`,color:C.gold},
+        {label:"Jours actifs",value:[...wDays].length,color:C.green},
+      ].map(({label,value,color})=><div key={label} style={{background:C.card,border:`1px solid ${color}30`,borderRadius:14,padding:"14px 16px"}}>
+        <div style={{color:C.muted,fontSize:10,letterSpacing:2,textTransform:"uppercase",marginBottom:6}}>{label}</div>
+        <div style={{color,fontSize:26,fontWeight:900,fontFamily:"'Playfair Display',serif"}}>{value}</div>
+      </div>)}
+    </div>
+
+    <Card>
+      <Title icon="📅" label="30 derniers jours"/>
+      <div style={{display:"flex",flexWrap:"wrap",gap:4,marginBottom:8}}>
+        {days30.map((d,i)=><div key={i} style={{width:20,height:20,borderRadius:4,background:wDays.has(d)?C.rose:rDays.has(d)?C.roseDim:"#ffffff08",border:`1px solid ${d===todayKey()?C.rose:"transparent"}`}}/>)}
+      </div>
+      <div style={{display:"flex",gap:12,fontSize:11,color:C.muted}}>
+        <span><span style={{color:C.rose}}>■</span> Muscu</span>
+        <span><span style={{color:C.roseDim,background:C.roseDim,padding:"0 4px"}}> </span> Routine</span>
+      </div>
+    </Card>
+
+    {Object.keys(routine).length>0&&<Card accent={C.green}>
+      <Title icon="🌸" label="Bien-être cette semaine" color={C.green}/>
+      <div style={{display:"flex",alignItems:"flex-end",gap:6,height:80}}>
+        {last7.map(({label,score})=><div key={label} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:4}}>
+          <div style={{fontSize:10,color:C.green,fontWeight:700}}>{score}/6</div>
+          <div style={{width:"100%",borderRadius:"4px 4px 0 0",height:`${(score/6)*60}px`,minHeight:4,background:score>=4?C.green:score>=2?C.gold:C.coral}}/>
+          <div style={{fontSize:9,color:C.dim}}>{label}</div>
+        </div>)}
+      </div>
+    </Card>}
+
+    {exoStats.length>0&&<Card accent={C.gold}>
+      <Title icon="🏆" label="Tes records" color={C.gold}/>
+      {exoStats.map(({ex,maxW,maxR,count})=><div key={ex} style={{marginBottom:12}}>
+        <div style={{display:"flex",justifyContent:"space-between",marginBottom:4}}>
+          <span style={{color:C.text,fontWeight:700}}>{ex}</span>
+          <span style={{color:C.dim,fontSize:12}}>{count} séance{count>1?"s":""}</span>
+        </div>
+        <div style={{display:"flex",gap:6}}>
+          {maxW>0&&<span style={{background:C.gold+"20",border:`1px solid ${C.gold}40`,borderRadius:6,padding:"3px 8px",fontSize:12,color:C.gold}}>🏆 {maxW}kg</span>}
+          {maxR>0&&<span style={{background:"#ffffff08",border:`1px solid ${C.border}`,borderRadius:6,padding:"3px 8px",fontSize:12,color:C.muted}}>{maxR} reps max</span>}
+        </div>
+      </div>)}
+    </Card>}
+  </div>;
+}
+
+// ── PAGE: COACH IA ─────────────────────────────────────────────────────────
+function PageCoach({workouts,routine}){
+  const [msgs,setMsgs]=useState([{role:"assistant",text:"Salut championne ! 💪 Je suis ton coach FlowFit. Dis-moi comment tu te sens, pose-moi une question sur ton programme, ou demande-moi d'analyser tes performances. Je suis là pour toi ! 🌸"}]);
+  const [input,setInput]=useState("");
+  const [loading,setLoading]=useState(false);
+  const bottom=useRef();
+  useEffect(()=>bottom.current?.scrollIntoView({behavior:"smooth"}),[msgs]);
+
+  const buildCtx=()=>{
+    const r=routine[todayKey()]||{};
+    const todayW=workouts.filter(w=>new Date(w.date).toDateString()===todayKey());
+    const totalVol=workouts.reduce((a,w)=>a+w.sets.reduce((b,s)=>b+(parseFloat(s.reps)||0)*(parseFloat(s.weight)||0),0),0);
+    return `Tu es un coach sportif bienveillant, motivant et énergique spécialisé dans l'accompagnement de femmes en périménopause/ménopause. Tu connais parfaitement les besoins spécifiques : renforcement musculaire pour la densité osseuse, gestion des bouffées de chaleur, fatigue hormonale, récupération, nutrition adaptée (protéines, oméga-3, D3, collagène, créatine). Ton ton est motivant, chaleureux, jamais condescendant. Tu célèbres chaque effort. Réponds en 3-5 phrases max avec énergie et bienveillance. Utilise des emojis avec parcimonie.
+
+AUJOURD'HUI: Repas=${MEALS.filter(m=>r[m.id]).map(m=>m.label).join(",")||"aucun"} | Suppléments=${SUPPLEMENTS.filter(s=>r[s.id]).map(s=>s.label).join(",")||"aucun"} | Eau=${r.water||0}/8 | Séances=${todayW.map(w=>w.exercise).join(",")||"aucune"} | Bien-être=${SYMPTOMS.filter(s=>r[s.id]).map(s=>s.label).join(",")||"non renseigné"}
+GLOBAL: ${workouts.length} séances enregistrées | Volume total soulevé: ${Math.round(totalVol)}kg | Exercices pratiqués: ${[...new Set(workouts.map(w=>w.exercise))].join(",")||"aucun"}`;
+  };
+
+  const send=async()=>{
+    if(!input.trim()||loading)return;
+    const q=input.trim();setInput("");
+    setMsgs(m=>[...m,{role:"user",text:q}]);setLoading(true);
+    try{
+      const hist=msgs.slice(-6).map(m=>({role:m.role==="assistant"?"assistant":"user",content:m.text}));
+      const res=await fetch("/api/chat",{
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({system:buildCtx(),messages:[...hist,{role:"user",content:q}]})
+      });
+      const data=await res.json();
+      const reply=data.content?.map(c=>c.text||"").join("")||"Je n'ai pas pu répondre. Réessaie !";
+      setMsgs(m=>[...m,{role:"assistant",text:reply}]);
+    }catch(e){
+      setMsgs(m=>[...m,{role:"assistant",text:"Oups, le coach est momentanément indisponible. Réessaie dans quelques secondes ! 💪"}]);
+    }
+    setLoading(false);
+  };
+
+  const SUGGESTIONS=["Comment sont mes performances ?","Conseil pour aujourd'hui","Que manger après la muscu ?","Exercices pour les os ?","J'ai des bouffées de chaleur, que faire ?"];
+
+  return <div className="fade" style={{display:"flex",flexDirection:"column",height:"calc(100vh - 160px)"}}>
+    <div style={{flex:1,overflowY:"auto",paddingBottom:16}}>
+      {msgs.map((m,i)=><div key={i} style={{display:"flex",justifyContent:m.role==="user"?"flex-end":"flex-start",marginBottom:12}}>
+        {m.role==="assistant"&&<div style={{width:32,height:32,borderRadius:"50%",background:C.rose,display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,marginRight:8,flexShrink:0,alignSelf:"flex-end"}}>🌸</div>}
+        <div style={{maxWidth:"80%",padding:"10px 14px",borderRadius:m.role==="user"?"16px 16px 4px 16px":"16px 16px 16px 4px",background:m.role==="user"?C.rose:C.card,border:m.role==="assistant"?`1px solid ${C.border}`:"none",color:C.text,fontSize:14,lineHeight:1.5}}>{m.text}</div>
+      </div>)}
+      {loading&&<div style={{display:"flex",alignItems:"center",gap:8,marginBottom:12}}>
+        <div style={{width:32,height:32,borderRadius:"50%",background:C.rose,display:"flex",alignItems:"center",justifyContent:"center"}}>🌸</div>
+        <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:16,padding:"10px 16px",color:C.muted,fontSize:14}}>En train de réfléchir...</div>
+      </div>}
+      <div ref={bottom}/>
+    </div>
+    <div style={{display:"flex",gap:6,overflowX:"auto",paddingBottom:10,marginBottom:10}}>
+      {SUGGESTIONS.map(s=><button key={s} onClick={()=>setInput(s)} style={{padding:"6px 12px",background:C.roseDim,border:`1px solid ${C.roseMid}`,color:C.rose,borderRadius:20,cursor:"pointer",fontSize:12,whiteSpace:"nowrap"}}>{s}</button>)}
+    </div>
+    <div style={{display:"flex",gap:8}}>
+      <Inp value={input} onChange={e=>setInput(e.target.value)} onKeyDown={e=>e.key==="Enter"&&send()} placeholder="Pose une question à ton coach..."/>
+      <button onClick={send} disabled={loading||!input.trim()} style={{padding:"12px 16px",background:input.trim()?C.rose:C.dim,border:"none",borderRadius:12,cursor:"pointer",fontSize:18,transition:"all 0.2s"}}>→</button>
+    </div>
+  </div>;
+}
+
+// ── PAGE: RAPPELS ──────────────────────────────────────────────────────────
+function PageRappels(){
+  const [perm,setPerm]=useState(typeof Notification!=="undefined"?Notification.permission:"unsupported");
+  const [enabled,setEnabled]=useLocal("flowfit-notifs",{});
+  const [testOk,setTestOk]=useState(false);
+
+  const getSW=async()=>{
+    if(!("serviceWorker" in navigator))return null;
+    try{
+      let reg=await navigator.serviceWorker.getRegistration('/');
+      if(!reg)reg=await navigator.serviceWorker.register('/sw.js',{scope:'/'});
+      await navigator.serviceWorker.ready;
+      return reg;
+    }catch(e){return null;}
+  };
+
+  const ask=async()=>{
+    if(typeof Notification==="undefined")return;
+    const r=await Notification.requestPermission();
+    setPerm(r);
+    if(r==="granted")await getSW();
+  };
+
+  const test=async()=>{
+    if(perm!=="granted")return;
+    const reg=await getSW();
+    if(reg){
+      await reg.showNotification("FlowFit 🌸",{body:"Les notifications fonctionnent ! Tu vas tout déchirer 💪",icon:"/icon.svg",vibrate:[200,100,200]});
+    } else {
+      new Notification("FlowFit 🌸",{body:"Les notifications fonctionnent ! Tu vas tout déchirer 💪"});
+    }
+    setTestOk(true);setTimeout(()=>setTestOk(false),3000);
+  };
+
+  const scheduleAll=async(en)=>{
+    const reg=await getSW();
+    if(!reg||!reg.active)return;
+    const now=new Date();
+    NOTIFS.forEach(n=>{
+      if(!en[n.id])return;
+      const t=new Date();t.setHours(n.h,n.m,0,0);
+      if(t<=now)t.setDate(t.getDate()+1);
+      reg.active.postMessage({type:"SCHEDULE",title:n.title,body:n.body,delay:t-now});
+    });
+  };
+
+  const toggle=id=>{
+    const u={...enabled,[id]:!enabled[id]};
+    setEnabled(u);
+    if(perm==="granted")scheduleAll(u);
+  };
+
+  const color=perm==="granted"?C.green:perm==="denied"?C.coral:C.gold;
+  const status=perm==="granted"?"✓ Autorisées":perm==="denied"?"✗ Bloquées dans les réglages":perm==="unsupported"?"Non supporté":"En attente";
+
+  return <div className="fade">
+    <Card accent={color}>
+      <Title icon="🔔" label="Notifications" color={color}/>
+      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:16}}>
+        <div>
+          <div style={{color,fontWeight:700,fontSize:15}}>{status}</div>
+          <div style={{color:C.muted,fontSize:12,marginTop:2}}>
+            {perm==="granted"?"Rappels actifs sur ce navigateur":perm==="denied"?"Autorise FlowFit dans les réglages":"Clique pour activer"}
+          </div>
+        </div>
+        {perm==="default"&&<button onClick={ask} style={{padding:"10px 18px",background:C.rose,color:"#fff",border:"none",borderRadius:10,cursor:"pointer",fontWeight:700,fontSize:13}}>Activer</button>}
+      </div>
+      {perm==="granted"&&<button onClick={test} style={{width:"100%",padding:10,background:testOk?C.green+"30":C.roseDim,border:`1px solid ${testOk?C.green:C.roseMid}`,borderRadius:10,color:testOk?C.green:C.rose,cursor:"pointer",fontSize:13}}>
+        {testOk?"✓ Notification envoyée !":"🧪 Envoyer un test"}
+      </button>}
+    </Card>
+
+    <Card>
+      <Title icon="⏰" label="Programme des rappels"/>
+      {NOTIFS.map(n=><div key={n.id} onClick={()=>perm==="granted"&&toggle(n.id)} style={{display:"flex",alignItems:"center",gap:12,padding:"11px 12px",background:enabled[n.id]?C.roseDim:"#ffffff06",border:`1px solid ${enabled[n.id]?C.roseMid:"#ffffff10"}`,borderRadius:10,marginBottom:7,cursor:perm==="granted"?"pointer":"default",opacity:perm!=="granted"?0.4:1,transition:"all 0.2s"}}>
+        <span style={{fontSize:20}}>{n.title.split(" ")[1]}</span>
+        <div style={{flex:1}}><div style={{color:C.text,fontSize:13}}>{n.body}</div></div>
+        <div style={{textAlign:"right"}}>
+          <div style={{color:enabled[n.id]?C.rose:C.dim,fontWeight:700,fontSize:14,fontFamily:"'Playfair Display',serif"}}>{String(n.h).padStart(2,"0")}h{String(n.m).padStart(2,"0")}</div>
+          <div style={{width:32,height:18,borderRadius:9,marginTop:3,background:enabled[n.id]?C.rose:"#ffffff15",position:"relative",marginLeft:"auto"}}>
+            <div style={{position:"absolute",top:2,width:14,height:14,borderRadius:"50%",background:"#fff",transition:"all 0.2s",left:enabled[n.id]?16:2}}/>
+          </div>
+        </div>
+      </div>)}
+    </Card>
+  </div>;
+}
+
+// ── APP ROOT ───────────────────────────────────────────────────────────────
+function App(){
+  const [workouts,setWorkoutsRaw]=useLocal("flowfit-workouts",[]);
+  const [routine,setRoutineRaw]=useLocal("flowfit-routine",{});
+  const [page,setPage]=useState("accueil");
+
+  const setWorkouts=v=>{setWorkoutsRaw(v);store.set("flowfit-workouts",v);};
+  const setRoutine=v=>{setRoutineRaw(v);store.set("flowfit-routine",v);};
+
+  const TABS=[
+    {id:"accueil",icon:"🏠",label:"Accueil"},
+    {id:"routine",icon:"✅",label:"Routine"},
+    {id:"muscu",icon:"🏋️",label:"Muscu"},
+    {id:"stats",icon:"📊",label:"Stats"},
+    {id:"coach",icon:"🌸",label:"Coach"},
+    {id:"rappels",icon:"🔔",label:"Rappels"},
+  ];
+
+  return <div style={{background:C.bg,minHeight:"100vh",color:C.text}}>
+    <div style={{background:C.bg,borderBottom:`1px solid ${C.border}`,padding:"16px 20px 12px",position:"sticky",top:0,zIndex:10}}>
+      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+        <div style={{display:"flex",alignItems:"baseline",gap:4}}>
+          <span style={{fontSize:24,fontWeight:900,color:C.rose,fontFamily:"'Playfair Display',serif"}}>Flow</span>
+          <span style={{fontSize:24,fontWeight:900,color:C.text,fontFamily:"'Playfair Display',serif"}}>Fit</span>
+          <span style={{color:C.rose,marginLeft:4,fontSize:14}}>✦</span>
+        </div>
+        <div style={{fontSize:11,color:C.dim,letterSpacing:1}}>{new Date().toLocaleDateString("fr-FR",{day:"numeric",month:"short"}).toUpperCase()}</div>
+      </div>
+    </div>
+
+    <div style={{padding:"16px 16px 90px"}}>
+      {page==="accueil"&&<PageAccueil routine={routine} workouts={workouts}/>}
+      {page==="routine"&&<PageRoutine routine={routine} setRoutine={setRoutine}/>}
+      {page==="muscu"&&<PageMuscu workouts={workouts} setWorkouts={setWorkouts}/>}
+      {page==="stats"&&<PageStats workouts={workouts} routine={routine}/>}
+      {page==="coach"&&<PageCoach workouts={workouts} routine={routine}/>}
+      {page==="rappels"&&<PageRappels/>}
+    </div>
+
+    <div style={{position:"fixed",bottom:0,left:0,right:0,background:C.bg,borderTop:`1px solid ${C.border}`,display:"flex"}}>
+      {TABS.map(t=><button key={t.id} onClick={()=>setPage(t.id)} style={{flex:1,padding:"10px 0 12px",background:page===t.id?C.roseDim:"none",border:"none",borderTop:`2px solid ${page===t.id?C.rose:"transparent"}`,color:page===t.id?C.rose:C.dim,cursor:"pointer",fontSize:9,letterSpacing:0.5,textTransform:"uppercase",transition:"all 0.2s"}}>
+        <div style={{fontSize:18,marginBottom:2}}>{t.icon}</div>
+        {t.label}
+      </button>)}
+    </div>
+  </div>;
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+</script>
+</body>
+</html>
