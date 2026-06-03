@@ -2,7 +2,7 @@ export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).end();
   const { messages, system } = req.body;
   try {
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
+    const r = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -16,10 +16,10 @@ export default async function handler(req, res) {
         messages
       })
     });
-    const text = await response.text();
-    res.setHeader('Content-Type', 'application/json');
-    res.status(200).send(text);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
+    const data = await r.json();
+    const reply = data?.content?.[0]?.text || JSON.stringify(data);
+    res.status(200).json({ reply });
+  } catch (e) {
+    res.status(200).json({ reply: 'ERREUR: ' + e.message });
   }
 }
