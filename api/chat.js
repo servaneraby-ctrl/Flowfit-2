@@ -1,8 +1,6 @@
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).end();
-  
   const { messages, system } = req.body;
-  
   try {
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
@@ -18,10 +16,10 @@ export default async function handler(req, res) {
         messages
       })
     });
-    
-    const data = await response.json();
-    res.status(200).json(data);
+    const text = await response.text();
+    res.setHeader('Content-Type', 'application/json');
+    res.status(200).send(text);
   } catch (error) {
-    res.status(500).json({ error: 'Erreur serveur' });
+    res.status(500).json({ error: error.message });
   }
 }
