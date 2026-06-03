@@ -568,7 +568,7 @@ GLOBAL: ${workouts.length} séances enregistrées | Volume total soulevé: ${Mat
         body:JSON.stringify({system:buildCtx(),messages:[...hist,{role:"user",content:q}]})
       });
       const data=await res.json();
-      const reply=data.content?.map(c=>c.text||"").join("")||"Je n'ai pas pu répondre. Réessaie !";
+      const reply=data.reply||"Je n'ai pas pu répondre. Réessaie !";
       setMsgs(m=>[...m,{role:"assistant",text:reply}]);
     }catch(e){
       setMsgs(m=>[...m,{role:"assistant",text:"Oups, le coach est momentanément indisponible. Réessaie dans quelques secondes ! 💪"}]);
